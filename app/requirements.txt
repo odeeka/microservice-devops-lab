@@ -8,10 +8,13 @@ asyncpg==0.30.0
 sqlalchemy==2.0.44
 #psycopg2-binary==2.9.11
 #psycopg[binary,pool]==3.2.12 # PostgreSQL adapter
+redis[hiredis]==7.1.0
+alembic==1.17.2
 
 # Pydantic for data validation
 pydantic==2.12.4
 pydantic-settings==2.12.0
+email-validator==2.3.0
 
 # Fake DAta Generation 
 faker==38.2.0
@@ -19,7 +22,9 @@ faker==38.2.0
 # Security
 python-dotenv==1.2.1
 python-jose[cryptography]==3.5.0
-passlib[bcrypt]==1.7.4
+bcrypt==4.1.3  # Compatible with passlib - version 5.x has breaking changes
+passlib==1.7.4
+python-multipart==0.0.20
 
 # Monitoring and observability
 prometheus-fastapi-instrumentator==7.1.0

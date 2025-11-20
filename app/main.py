@@ -16,6 +16,14 @@ import time
 from config import get_settings
 from db.database import DatabaseManager
 from api.routes import router as api_router
+from api.auth_routes import router as auth_router
+from api.user_routes import router as user_router
+from api.session_routes import router as session_router
+from api.admin_routes import router as admin_router
+from services.cache_service import get_cache
+from middleware.rate_limit import RateLimitMiddleware
+from middleware.auto_token_refresh import AutoTokenRefreshMiddleware
+from middleware.session_activity import SessionActivityMiddleware
 
 # Create logs directory if it doesn't exist
 logs_dir = Path("/app/logs")
@@ -54,6 +62,61 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to initialize database: {e}")
         raise
     
+    # Initialize users table
+    try:
+        logger.info("📋 Initializing users table...")
+        init_users_sql_path = Path("/app/db/init_users.sql")
+        if init_users_sql_path.exists():
+            with open(init_users_sql_path, 'r') as f:
+                init_sql = f.read()
+            await db_manager.execute(init_sql)
+            logger.info("✅ Users table initialized")
+        else:
+            logger.warning("⚠️  init_users.sql not found, skipping users table creation")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize users table: {e}")
+        # Don't fail startup
+    
+    # Initialize sessions table
+    try:
+        logger.info("📋 Initializing sessions table...")
+        init_sessions_sql_path = Path("/app/db/init_sessions.sql")
+        if init_sessions_sql_path.exists():
+            with open(init_sessions_sql_path, 'r') as f:
+                init_sql = f.read()
+            await db_manager.execute(init_sql)
+            logger.info("✅ Sessions table initialized")
+        else:
+            logger.warning("⚠️  init_sessions.sql not found, skipping sessions table creation")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize sessions table: {e}")
+        # Don't fail startup
+    
+    # Generate default users and fake users if enabled
+    if settings.enable_fake_data:
+        try:
+            logger.info("👥 Generating default users...")
+            from services.user_generator import UserGenerator
+            
+            user_generator = UserGenerator()
+            
+            # Create default users (admin, testuser, readonly)
+            default_users = await user_generator.create_default_users()
+            if default_users:
+                logger.info(f"✅ Created {len(default_users)} default users")
+                logger.info("   - admin@example.com / Admin123!")
+                logger.info("   - user@example.com / User123!")
+                logger.info("   - readonly@example.com / Readonly123!")
+            
+            # Generate additional fake users
+            fake_user_count = await user_generator.populate_users(count=20)
+            if fake_user_count > 0:
+                logger.info(f"✅ Generated {fake_user_count} additional fake users")
+            
+        except Exception as e:
+            logger.error(f"⚠️  Failed to generate users: {e}")
+            # Don't fail startup
+    
     # Generate fake data if enabled
     if settings.enable_fake_data:
         try:
@@ -80,10 +143,19 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("ℹ️  Fake data generation is disabled")
     
+    # Test Redis connection
+    cache_service = get_cache()
+    redis_available = await cache_service.ping()
+    if redis_available:
+        logger.info("✅ Redis connection established")
+    else:
+        logger.warning("⚠️  Redis is not available - caching disabled")
+    
     yield
     
     logger.info("🛑 Shutting down application...")
     await db_manager.close_all_connections()
+    await cache_service.close()
     queue_listener.stop()
 
 def create_app() -> FastAPI:
@@ -113,6 +185,28 @@ def create_app() -> FastAPI:
         TrustedHostMiddleware,
         allowed_hosts=settings.allowed_hosts
     )
+
+    # Add rate limiting middleware (IP-based with Redis)
+    if settings.rate_limit_enabled:
+        app.add_middleware(
+            RateLimitMiddleware,
+            requests_per_minute=settings.rate_limit_requests_per_minute,
+            block_duration=settings.rate_limit_block_duration
+        )
+        logger.info(
+            f"✅ Rate limiting enabled: {settings.rate_limit_requests_per_minute} "
+            f"requests/minute per IP, block for {settings.rate_limit_block_duration}s"
+        )
+    else:
+        logger.info("⚠️  Rate limiting disabled via configuration")
+    
+    # Add auto token refresh middleware (Phase 3 feature)
+    app.add_middleware(AutoTokenRefreshMiddleware)
+    logger.info("✅ Auto token refresh middleware enabled")
+    
+    # Add session activity tracking middleware (Phase 3 feature)
+    app.add_middleware(SessionActivityMiddleware)
+    logger.info("✅ Session activity tracking middleware enabled")
 
     # Add request timing middleware (async)
     @app.middleware("http")
@@ -158,8 +252,12 @@ def create_app() -> FastAPI:
             "version": "1.0.0"
         }
 
-    # Include API router
+    # Include API routers
     app.include_router(api_router, prefix="/api/v1")
+    app.include_router(auth_router, prefix="/api/v1")
+    app.include_router(user_router, prefix="/api/v1")
+    app.include_router(session_router, prefix="/api/v1")
+    app.include_router(admin_router, prefix="/api/v1")
 
     # Initialize Prometheus instrumentation if enabled
     if settings.enable_metrics:

@@ -140,3 +140,10 @@ class DatabaseManager:
                 except Exception as e:
                     logger.error(f"Transaction failed: {e}")
                     raise
+
+
+async def get_db_session():
+    """Dependency to get database connection for FastAPI routes"""
+    db_manager = DatabaseManager()
+    async with db_manager.get_connection() as conn:
+        yield conn

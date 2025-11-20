@@ -1,0 +1,327 @@
+.PHONY: help build up upd down restart logs logs-api logs-db test clean lint format install dev prod \
+				migrate seed
+
+# Color output
+BLUE := \033[0;34m
+GREEN := \033[0;32m
+YELLOW := \033[0;33m
+RED := \033[0;31m
+NC := \033[0m # No Color
+
+# Configuration
+DOCKER_COMPOSE := docker-compose
+APP_CONTAINER := api
+DB_CONTAINER := db
+BACKUP_DIR := ./backups
+
+# ============================================
+# HELP & INFORMATION
+# ============================================
+
+help:
+		@echo "$(BLUE)════════════════════════════════════════════════════════════$(NC)"
+		@echo "$(GREEN)  Microservice DevOps Lab - Available Commands$(NC)"
+		@echo "$(BLUE)════════════════════════════════════════════════════════════$(NC)"
+		@echo ""
+		@echo "$(YELLOW)🚀 Container Management:$(NC)"
+		@echo "  make build        - Build Docker images"
+		@echo "  make up           - Start all services (foreground)"
+		@echo "  make upd          - Start all services (background/daemon)"
+		@echo "  make down         - Stop all services"
+		@echo "  make restart      - Restart all services"
+		@echo "  make status       - Show container status"
+		@echo ""
+		@echo "$(YELLOW)📋 Logs & Monitoring:$(NC)"
+		@echo "  make logs         - Show logs from all services"
+		@echo "  make logs-api     - Show API logs only"
+		@echo "  make logs-db      - Show database logs only"
+		@echo "  make monitor      - Open monitoring dashboards"
+		@echo "  make health       - Check service health"
+		@echo ""
+		@echo "$(YELLOW)🧪 Testing & Quality:$(NC)"
+		@echo "  make test         - Run all tests"
+		@echo "  make test-verbose - Run tests with verbose output"
+		@echo "  make coverage     - Run tests with coverage report"
+		@echo "  make lint         - Run code linting"
+		@echo "  make format       - Format code automatically"
+		@echo "  make security-check - Run security vulnerability scan"
+		@echo ""
+		@echo "$(YELLOW)💾 Database Operations:$(NC)"
+		@echo "  make migrate      - Run database migrations"
+		@echo "  make seed         - Seed database with test data"
+		@echo "  make fake-data    - Generate fake data (configurable amount)"
+		@echo "  make fake-data-clear - Clear all data and regenerate"
+		@echo "  make db-reset     - Reset database (drop & recreate)"
+		@echo "  make db-backup    - Backup database"
+		@echo "  make db-restore   - Restore database from backup"
+		@echo "  make shell-db     - Open PostgreSQL shell"
+		@echo ""
+		@echo "$(YELLOW)🔧 Development:$(NC)"
+		@echo "  make dev          - Start development environment"
+		@echo "  make prod         - Start production environment"
+		@echo "  make shell        - Open shell in API container"
+		@echo "  make install      - Install Python dependencies locally"
+		@echo "  make update-deps  - Update all dependencies"
+		@echo "  make check-env    - Validate environment configuration"
+		@echo ""
+		@echo "$(YELLOW)📚 Documentation:$(NC)"
+		@echo "  make api-docs     - Open API documentation in browser"
+		@echo ""
+		@echo "$(YELLOW)🧹 Cleanup:$(NC)"
+		@echo "  make clean        - Clean up Docker resources"
+		@echo "  make clean-all    - Deep clean (volumes, images, cache)"
+		@echo ""
+		@echo "$(BLUE)════════════════════════════════════════════════════════════$(NC)"
+
+# ============================================
+# CONTAINER MANAGEMENT
+# ============================================
+
+build:
+		@echo "$(GREEN)🔨 Building Docker images...$(NC)"
+		$(DOCKER_COMPOSE) build --no-cache
+
+up:
+		@echo "$(GREEN)🚀 Starting all services (foreground)...$(NC)"
+		$(DOCKER_COMPOSE) up --build
+
+upd:
+		@echo "$(GREEN)🚀 Starting all services (background)...$(NC)"
+		$(DOCKER_COMPOSE) up -d --build
+		@echo "$(GREEN)✅ Services started! Run 'make logs' to view logs$(NC)"
+
+down:
+		@echo "$(YELLOW)🛑 Stopping all services...$(NC)"
+		$(DOCKER_COMPOSE) down
+
+restart:
+		@echo "$(YELLOW)🔄 Restarting all services...$(NC)"
+		$(DOCKER_COMPOSE) restart
+		@echo "$(GREEN)✅ Services restarted!$(NC)"
+
+status:
+		@echo "$(BLUE)📊 Container Status:$(NC)"
+		@$(DOCKER_COMPOSE) ps
+
+# ============================================
+# LOGS & MONITORING
+# ============================================
+
+logs:
+		@echo "$(BLUE)📋 Showing logs from all services...$(NC)"
+		$(DOCKER_COMPOSE) logs -f
+
+logs-api:
+		@echo "$(BLUE)📋 Showing API logs...$(NC)"
+		$(DOCKER_COMPOSE) logs -f $(APP_CONTAINER)
+
+logs-db:
+		@echo "$(BLUE)📋 Showing database logs...$(NC)"
+		$(DOCKER_COMPOSE) logs -f $(DB_CONTAINER)
+
+monitor:
+		@echo "$(GREEN)📊 Opening monitoring dashboards...$(NC)"
+		@echo "$(BLUE)API Documentation: http://localhost:8000/docs$(NC)"
+		@echo "$(BLUE)API ReDoc:        http://localhost:8000/redoc$(NC)"
+		@echo "$(BLUE)API Health:       http://localhost:8000/health$(NC)"
+		@echo "$(BLUE)Prometheus:       http://localhost:9090$(NC)"
+		@echo "$(BLUE)Grafana:          http://localhost:3000 (admin/admin)$(NC)"
+		@xdg-open http://localhost:8000/docs 2>/dev/null || open http://localhost:8000/docs 2>/dev/null || echo "$(YELLOW)⚠️  Please open manually$(NC)"
+
+health:
+		@echo "$(BLUE)🏥 Checking service health...$(NC)"
+		@curl -s http://localhost:8000/health | jq '.' || echo "$(RED)❌ API is not responding$(NC)"
+		@curl -s http://localhost:8000/health/detailed | jq '.' || echo "$(RED)❌ Detailed health check failed$(NC)"
+
+# ============================================
+# TESTING & QUALITY
+# ============================================
+
+test:
+		@echo "$(BLUE)🧪 Running tests...$(NC)"
+		$(DOCKER_COMPOSE) exec $(APP_CONTAINER) python -m pytest tests/ -v
+
+test-verbose:
+		@echo "$(BLUE)🧪 Running tests with verbose output...$(NC)"
+		$(DOCKER_COMPOSE) exec $(APP_CONTAINER) python -m pytest tests/ -vv -s
+
+coverage:
+		@echo "$(BLUE)📊 Running tests with coverage...$(NC)"
+		$(DOCKER_COMPOSE) exec $(APP_CONTAINER) python -m pytest tests/ --cov=. --cov-report=html --cov-report=term
+		@echo "$(GREEN)✅ Coverage report generated in htmlcov/index.html$(NC)"
+
+lint:
+		@echo "$(BLUE)🔍 Running code linting...$(NC)"
+		@echo "Checking with flake8..."
+		@python -m flake8 app/ tests/ || true
+		@echo "Checking with black..."
+		@python -m black --check app/ tests/ || true
+		@echo "Checking with isort..."
+		@python -m isort --check-only app/ tests/ || true
+
+format:
+		@echo "$(GREEN)✨ Formatting code...$(NC)"
+		python -m black app/ tests/
+		python -m isort app/ tests/
+		@echo "$(GREEN)✅ Code formatted!$(NC)"
+
+security-check:
+		@echo "$(BLUE)🔒 Running security vulnerability scan...$(NC)"
+		@pip install safety bandit 2>/dev/null || true
+		@safety check --json || true
+		@bandit -r app/ -f json || true
+
+# ============================================
+# DATABASE OPERATIONS
+# ============================================
+
+migrate:
+		@echo "$(BLUE)🗄️  Running database migrations...$(NC)"
+		$(DOCKER_COMPOSE) exec $(APP_CONTAINER) alembic upgrade head
+		@echo "$(GREEN)✅ Migrations completed!$(NC)"
+
+seed:
+		@echo "$(BLUE)🌱 Seeding database with fake data...$(NC)"
+		$(DOCKER_COMPOSE) exec $(APP_CONTAINER) python -c "import asyncio; from services.data_generator import DataGenerator; from db.database import DatabaseManager; async def run(): db = DatabaseManager(); await db.init_db(); gen = DataGenerator(); await gen.populate_database(); await db.close_all_connections(); asyncio.run(run())"
+		@echo "$(GREEN)✅ Database seeded!$(NC)"
+
+fake-data:
+		@echo "$(BLUE)🎲 Generating fake data...$(NC)"
+		@read -p "Enter number of items to generate (default 100): " count; \
+		count=$${count:-100}; \
+		curl -X POST "http://localhost:8000/api/v1/fake-data/generate?count=$$count" | jq '.'
+		@echo "$(GREEN)✅ Fake data generated!$(NC)"
+
+fake-data-clear:
+		@echo "$(YELLOW)⚠️  This will DELETE all existing data!$(NC)"
+		@read -p "Are you sure? (yes/no): " confirm; \
+		if [ "$$confirm" = "yes" ]; then \
+				curl -X POST "http://localhost:8000/api/v1/fake-data/generate?clear_existing=true" | jq '.'; \
+				echo "$(GREEN)✅ Data cleared and regenerated!$(NC)"; \
+		else \
+				echo "$(YELLOW)Operation cancelled$(NC)"; \
+		fi
+
+db-reset:
+		@echo "$(RED)⚠️  WARNING: This will DELETE all data!$(NC)"
+		@read -p "Are you sure? Type 'yes' to confirm: " confirm; \
+		if [ "$$confirm" = "yes" ]; then \
+				$(DOCKER_COMPOSE) down -v; \
+				$(DOCKER_COMPOSE) up -d --build; \
+				echo "$(GREEN)✅ Database reset complete!$(NC)"; \
+		else \
+				echo "$(YELLOW)Operation cancelled$(NC)"; \
+		fi
+
+db-backup:
+		@echo "$(BLUE)💾 Backing up database...$(NC)"
+		@mkdir -p $(BACKUP_DIR)
+		@TIMESTAMP=$$(date +%Y%m%d_%H%M%S); \
+		$(DOCKER_COMPOSE) exec -T $(DB_CONTAINER) pg_dump -U labuser labdb > $(BACKUP_DIR)/backup_$$TIMESTAMP.sql
+		@echo "$(GREEN)✅ Backup saved to $(BACKUP_DIR)/backup_$$TIMESTAMP.sql$(NC)"
+
+db-restore:
+		@echo "$(BLUE)📥 Restoring database...$(NC)"
+		@ls -1 $(BACKUP_DIR)/*.sql 2>/dev/null || (echo "$(RED)No backups found$(NC)" && exit 1)
+		@read -p "Enter backup filename: " backup; \
+		if [ -f "$(BACKUP_DIR)/$$backup" ]; then \
+				$(DOCKER_COMPOSE) exec -T $(DB_CONTAINER) psql -U labuser labdb < $(BACKUP_DIR)/$$backup; \
+				echo "$(GREEN)✅ Database restored!$(NC)"; \
+		else \
+				echo "$(RED)Backup file not found$(NC)"; \
+		fi
+
+shell-db:
+		@echo "$(BLUE)🐘 Opening PostgreSQL shell...$(NC)"
+		$(DOCKER_COMPOSE) exec $(DB_CONTAINER) psql -U labuser -d labdb
+
+# ============================================
+# DEVELOPMENT
+# ============================================
+
+dev:
+		@echo "$(GREEN)🔧 Starting development environment...$(NC)"
+		@if [ ! -f .env ]; then cp .env.example .env; fi
+		@$(DOCKER_COMPOSE) up --build
+
+prod:
+		@echo "$(GREEN)🚀 Starting production environment...$(NC)"
+		@$(DOCKER_COMPOSE) up -d --build
+
+shell:
+		@echo "$(BLUE)🐚 Opening shell in API container...$(NC)"
+		$(DOCKER_COMPOSE) exec $(APP_CONTAINER) /bin/sh
+
+install:
+		@echo "$(BLUE)📦 Installing Python dependencies locally...$(NC)"
+		pip install -r app/requirements.txt
+		@echo "$(GREEN)✅ Dependencies installed!$(NC)"
+
+update-deps:
+		@echo "$(BLUE)🔄 Updating dependencies...$(NC)"
+		pip install --upgrade pip
+		pip list --outdated
+		@echo "$(YELLOW)Review outdated packages and update requirements.txt$(NC)"
+
+check-env:
+		@echo "$(BLUE)🔍 Validating environment configuration...$(NC)"
+		@if [ -f .env ]; then \
+				echo "$(GREEN)✅ .env file exists$(NC)"; \
+				$(DOCKER_COMPOSE) exec $(APP_CONTAINER) python -c "from config import get_settings; s = get_settings(); print('Debug:', s.debug); print('Fake Data:', s.enable_fake_data)"; \
+		else \
+				echo "$(RED)❌ .env file not found! Copy .env.example to .env$(NC)"; \
+		fi
+
+# ============================================
+# DOCUMENTATION
+# ============================================
+
+api-docs:
+		@echo "$(BLUE)📚 Opening API documentation...$(NC)"
+		@xdg-open http://localhost:8000/docs 2>/dev/null || open http://localhost:8000/docs 2>/dev/null || echo "$(BLUE)Open http://localhost:8000/docs in your browser$(NC)"
+
+# ============================================
+# CLEANUP
+# ============================================
+
+clean:
+		@echo "$(YELLOW)🧹 Cleaning up Docker resources...$(NC)"
+		$(DOCKER_COMPOSE) down -v --remove-orphans
+		docker system prune -f
+		@echo "$(GREEN)✅ Cleanup complete!$(NC)"
+
+clean-all:
+		@echo "$(RED)⚠️  Deep cleaning Docker resources...$(NC)"
+		$(DOCKER_COMPOSE) down -v --remove-orphans --rmi all
+		docker system prune -af --volumes
+		@echo "$(GREEN)✅ Deep cleanup complete!$(NC)"
+
+# ============================================
+# SHORTCUTS
+# ============================================
+
+# Quick restart API only
+restart-api:
+		@echo "$(YELLOW)🔄 Restarting API container...$(NC)"
+		$(DOCKER_COMPOSE) restart $(APP_CONTAINER)
+
+# Quick rebuild and start
+rebuild:
+		@echo "$(GREEN)🔨 Rebuilding and starting...$(NC)"
+		$(DOCKER_COMPOSE) down
+		$(DOCKER_COMPOSE) up -d --build
+
+# Show API stats
+stats:
+		@echo "$(BLUE)📊 API Statistics:$(NC)"
+		@curl -s http://localhost:8000/api/v1/items/stats/summary | jq '.'
+
+# List all items
+list-items:
+		@echo "$(BLUE)📋 Listing items:$(NC)"
+		@curl -s "http://localhost:8000/api/v1/items?limit=10" | jq '.items'
+
+# List categories
+list-categories:
+		@echo "$(BLUE)📂 Listing categories:$(NC)"
+		@curl -s http://localhost:8000/api/v1/categories | jq '.'

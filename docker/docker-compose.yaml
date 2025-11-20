@@ -17,6 +17,8 @@ services:
       POSTGRES_PASSWORD: labpass
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
       DEBUG: "true"
       ENABLE_METRICS: "true"
       LOG_LEVEL: "INFO"
@@ -70,40 +72,40 @@ services:
       timeout: 5s
       retries: 3
 
-  # prometheus:
-  #   image: prom/prometheus:latest
-  #   volumes:
-  #     - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-  #     - prometheus_data:/prometheus
-  #   ports:
-  #     - "9090:9090"
-  #   command:
-  #     - '--config.file=/etc/prometheus/prometheus.yml'
-  #     - '--storage.tsdb.path=/prometheus'
-  #     - '--web.console.libraries=/etc/prometheus/console_libraries'
-  #     - '--web.console.templates=/etc/prometheus/consoles'
-  #     - '--storage.tsdb.retention.time=200h'
-  #     - '--web.enable-lifecycle'
-  #   networks:
-  #     - app_network
-  #   restart: unless-stopped
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - app_network
+    restart: unless-stopped
 
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     GF_SECURITY_ADMIN_PASSWORD: admin
-  #     GF_USERS_ALLOW_SIGN_UP: "false"
-  #     GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel
-  #   volumes:
-  #     - grafana_data:/var/lib/grafana
-  #     - ../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
-  #   networks:
-  #     - app_network
-  #   restart: unless-stopped
-  #   depends_on:
-  #     - prometheus
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-worldmap-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+    networks:
+      - app_network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
 
   nginx:
     image: nginx:alpine

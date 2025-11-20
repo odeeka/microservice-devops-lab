@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     redis_db: int = 0
     
     # ============================================
+    # RATE LIMITING SETTINGS
+    # ============================================
+    rate_limit_enabled: bool = True
+    rate_limit_requests_per_minute: int = 10
+    rate_limit_block_duration: int = 60  # seconds to block after exceeding limit
+    
+    # ============================================
     # APPLICATION SETTINGS
     # ============================================
     app_name: str = "Microservice DevOps Lab"

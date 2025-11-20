@@ -13,6 +13,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Copy requirements and install dependencies
 COPY app/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir 'bcrypt<5.0' && \
     pip install --no-cache-dir -r requirements.txt
 
 
