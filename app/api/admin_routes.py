@@ -220,7 +220,7 @@ async def get_recent_activity(
 # USER MANAGEMENT
 # ============================================
 
-@router.get("/users", response_model=List[UserResponse])
+@router.get("/users")
 async def list_all_users(
     current_user: dict = Depends(require_role("admin")),
     skip: int = Query(0, ge=0),
@@ -261,20 +261,25 @@ async def list_all_users(
             param_count += 1
         
         if search:
-            conditions.append(f"(username ILIKE ${param_count} OR email ILIKE ${param_count})")
+            search_param_num = param_count
+            conditions.append(f"(username ILIKE ${search_param_num} OR email ILIKE ${search_param_num})")
             params.append(f"%{search}%")
             param_count += 1
         
         where_clause = " AND ".join(conditions) if conditions else "TRUE"
+        
+        # Add limit and offset to params
+        limit_param = param_count
+        offset_param = param_count + 1
+        params.extend([limit, skip])
         
         query = f"""
             SELECT id, username, email, full_name, role, is_active, created_at, updated_at
             FROM users
             WHERE {where_clause}
             ORDER BY created_at DESC
-            LIMIT ${param_count} OFFSET ${param_count + 1}
+            LIMIT ${limit_param} OFFSET ${offset_param}
         """
-        params.extend([limit, skip])
         
         results = await session.fetch(query, *params)
         users = [dict(row) for row in results]
@@ -294,7 +299,7 @@ async def list_all_users(
         )
 
 
-@router.get("/users/{user_id}", response_model=UserResponse)
+@router.get("/users/{user_id}")
 async def get_user_details(
     user_id: int,
     current_user: dict = Depends(require_role("admin")),

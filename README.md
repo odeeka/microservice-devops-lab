@@ -73,6 +73,12 @@ graph TB
 │   │   └── 📄 prometheus.yml        # Prometheus configuration
 │   └── 📁 grafana/
 │       └── 📁 dashboards/           # Grafana dashboard configs
+├── 📁 frontend/                     # Admin Dashboard UI
+│   ├── 📄 index.html                # Main dashboard interface
+│   ├── 📄 styles.css                # UI styling
+│   ├── 📄 app.js                    # Dashboard logic
+│   ├── 📄 start.sh                  # Quick start script
+│   └── 📄 README.md                 # Frontend documentation
 ├── 📁 tests/
 │   ├── 📄 test_health.py            # Health endpoint tests
 │   └── 📄 test_items.py             # Items API tests
@@ -138,6 +144,25 @@ pip install -r app/requirements.txt
 cd app
 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 ```
+
+### 4. **Start Admin Dashboard (Frontend)**
+```bash
+# Start the frontend dashboard
+cd frontend
+./start.sh
+```
+
+Then open <http://localhost:8080> in your browser and login with:
+- **Username**: `admin`
+- **Password**: `Admin123!`
+
+**Or use Docker Compose** (frontend included):
+```bash
+make up
+# Frontend will be available at http://localhost:8080
+```
+
+📖 **[Frontend Documentation](frontend/README.md)**
 
 ## 📊 **API Documentation**
 
@@ -253,11 +278,16 @@ docker-compose -f docker/docker-compose.yaml down
 - **Role-Based Access Control (RBAC)**: Three-tier role system (admin, user, readonly)
 - **Token Blacklist**: Redis-based logout with automatic token revocation
 - **Session Management**: Track and manage user sessions across multiple devices
+- **Enhanced Security Features**: Refresh token rotation, auto token refresh, session activity tracking
+- **Device Fingerprinting**: Risk-based authentication with suspicious login detection
+- **Admin Dashboard**: Comprehensive user and session management interface
 - **Password Security**: Bcrypt hashing with configurable rounds
 
 📖 **[Complete Authentication Documentation](docs/AUTHENTICATION.md)**  
 📖 **[Token Blacklist Implementation](docs/TOKEN_BLACKLIST.md)**  
-📖 **[Session Management Guide](docs/SESSION_MANAGEMENT.md)**
+📖 **[Session Management Guide](docs/SESSION_MANAGEMENT.md)**  
+📖 **[Enhanced Security Features](docs/ENHANCED_SECURITY.md)**  
+📖 **[Admin Dashboard API](docs/ADMIN_DASHBOARD.md)**
 
 ### Infrastructure Security
 
