@@ -113,6 +113,9 @@ class DataGenerator:
         description = self._generate_description(name, category)
         price = self._generate_price(category)
         
+        # Generate random quantity between 0 and 500
+        quantity = random.randint(0, 500)
+        
         # Use configured active percentage
         is_active = random.random() < self.settings.fake_data_active_percentage
         
@@ -121,6 +124,7 @@ class DataGenerator:
             description=description,
             price=price,
             category=category,
+            quantity=quantity,
             is_active=is_active
         )
     

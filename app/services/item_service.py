@@ -79,14 +79,15 @@ class ItemService:
         try:
             row = await self.db.fetchrow(
                 """
-                INSERT INTO items (name, description, price, category, is_active)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO items (name, description, price, category, quantity, is_active)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 RETURNING *
                 """,
                 item.name,
                 item.description,
                 item.price,
                 item.category,
+                item.quantity,
                 item.is_active
             )
             
@@ -124,6 +125,11 @@ class ItemService:
             if item.category is not None:
                 update_fields.append(f"category = ${param_count}")
                 params.append(item.category)
+                param_count += 1
+
+            if item.quantity is not None:
+                update_fields.append(f"quantity = ${param_count}")
+                params.append(item.quantity)
                 param_count += 1
 
             if item.is_active is not None:
@@ -259,14 +265,15 @@ class ItemService:
                     for item in items:
                         row = await conn.fetchrow(
                             """
-                            INSERT INTO items (name, description, price, category, is_active)
-                            VALUES ($1, $2, $3, $4, $5)
+                            INSERT INTO items (name, description, price, category, quantity, is_active)
+                            VALUES ($1, $2, $3, $4, $5, $6)
                             RETURNING *
                             """,
                             item.name,
                             item.description,
                             item.price,
                             item.category,
+                            item.quantity,
                             item.is_active
                         )
                         created_items.append(ItemResponse(**dict(row)))
@@ -311,4 +318,82 @@ class ItemService:
             
         except Exception as e:
             logger.error(f"❌ Error searching items: {e}")
+            raise
+
+    async def place_order(self, items_to_order: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Place an order by reducing item quantities (ASYNC with TRANSACTION)
+        
+        Args:
+            items_to_order: List of dicts with 'item_id' and 'quantity' keys
+            
+        Returns:
+            Dict with success status, message, and details
+        """
+        try:
+            updated_items = []
+            errors = []
+            
+            async with self.db.get_connection() as conn:
+                async with conn.transaction():
+                    for order_item in items_to_order:
+                        item_id = order_item['item_id']
+                        quantity_ordered = order_item['quantity']
+                        
+                        # Get current item
+                        row = await conn.fetchrow(
+                            "SELECT id, name, quantity FROM items WHERE id = $1 AND is_active = true",
+                            item_id
+                        )
+                        
+                        if not row:
+                            errors.append(f"Item {item_id} not found or inactive")
+                            continue
+                        
+                        current_quantity = row['quantity']
+                        
+                        if current_quantity < quantity_ordered:
+                            errors.append(f"Insufficient stock for {row['name']}: {current_quantity} available, {quantity_ordered} requested")
+                            continue
+                        
+                        # Update quantity
+                        new_quantity = current_quantity - quantity_ordered
+                        updated_row = await conn.fetchrow(
+                            """
+                            UPDATE items 
+                            SET quantity = $1, updated_at = $2
+                            WHERE id = $3
+                            RETURNING id, name, quantity
+                            """,
+                            new_quantity,
+                            datetime.utcnow(),
+                            item_id
+                        )
+                        
+                        updated_items.append({
+                            'item_id': updated_row['id'],
+                            'name': updated_row['name'],
+                            'new_quantity': updated_row['quantity'],
+                            'ordered': quantity_ordered
+                        })
+            
+            if errors and not updated_items:
+                return {
+                    'success': False,
+                    'message': 'Order failed',
+                    'items_updated': 0,
+                    'errors': errors
+                }
+            
+            logger.info(f"✅ Order placed: {len(updated_items)} items updated")
+            return {
+                'success': True,
+                'message': f'Order placed successfully: {len(updated_items)} items updated',
+                'items_updated': len(updated_items),
+                'updated_items': updated_items,
+                'errors': errors
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error placing order: {e}")
             raise

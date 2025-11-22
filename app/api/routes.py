@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 import hashlib
 
-from models.item import ItemCreate, ItemUpdate, ItemResponse
+from models.item import ItemCreate, ItemUpdate, ItemResponse, OrderCreate, OrderResponse
 from services.item_service import ItemService
 from services.data_generator import DataGenerator
 from services.cache_service import get_cache
@@ -571,3 +571,47 @@ async def get_redis_stats():
     except Exception as e:
         logger.error(f"Error getting Redis stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/orders", response_model=OrderResponse, tags=["Orders"])
+async def place_order(order: OrderCreate):
+    """
+    Place an order and update item quantities in database.
+    
+    This endpoint:
+    - Validates all items exist and are active
+    - Checks if sufficient quantity is available
+    - Reduces item quantities in a transaction
+    - Returns updated items or errors
+    """
+    try:
+        # Convert OrderCreate to list of dicts for service
+        items_to_order = [
+            {
+                'item_id': item.item_id,
+                'quantity': item.quantity,
+                'price': item.price
+            }
+            for item in order.items
+        ]
+        
+        # Place order (updates quantities)
+        result = await item_service.place_order(items_to_order)
+        
+        # Invalidate cache after order
+        await cache_service.clear_pattern('items:list:*')
+        logger.info("Cache invalidated after placing order")
+        
+        return OrderResponse(
+            success=result['success'],
+            message=result['message'],
+            items_updated=result['items_updated'],
+            errors=result.get('errors', [])
+        )
+        
+    except Exception as e:
+        logger.error(f"Error placing order: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to place order: {str(e)}"
+        )

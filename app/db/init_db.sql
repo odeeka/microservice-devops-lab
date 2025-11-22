@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS items (
     description TEXT,
     price DECIMAL(10,2),
     category VARCHAR(100),
+    quantity INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_active BOOLEAN DEFAULT TRUE

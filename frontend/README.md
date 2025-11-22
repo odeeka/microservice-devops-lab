@@ -1,16 +1,38 @@
-# 🎨 Admin Dashboard Frontend
+# 🎨 Frontend Applications
 
-A modern, responsive web interface for the Microservice DevOps Lab Admin Dashboard.
+Two separate web interfaces for the Microservice DevOps Lab project.
 
-## 🌟 Features
+## 🌟 Applications
 
+### 1. User Frontend (Default - `/`)
+A simple items management interface for regular users.
+
+**Features:**
+- **📦 Item Management** - View, create, edit, and delete items
+- **📊 Dashboard Statistics** - Total items, active items, categories
+- **🔍 Search & Filter** - Search by name, filter by category and status
+- **🎨 Modern UI** - Clean, responsive design with card layout
+- **🔐 Secure** - JWT token-based authentication
+
+**Default Credentials:**
+- Username: `testuser`
+- Password: `User123!`
+
+### 2. Admin Frontend (`/admin/`)
+A comprehensive management dashboard for administrators.
+
+**Features:**
 - **📊 Dashboard Overview** - Real-time system statistics and metrics
 - **👥 User Management** - View, search, filter, activate/deactivate users
 - **📱 Session Management** - Monitor and revoke user sessions
 - **🔒 Security Monitoring** - Track suspicious logins and security alerts
 - **📅 Activity Logs** - Recent logins and session revocations
 - **🎨 Modern UI** - Clean, responsive design with smooth animations
-- **🔐 Secure** - JWT token-based authentication with role checking
+- **🔐 Secure** - Role-based access control (admin only)
+
+**Admin Credentials:**
+- Username: `admin`
+- Password: `Admin123!`
 
 ## 🚀 Quick Start
 
@@ -74,7 +96,7 @@ Simply serve the `frontend` directory on port 8080 or any port you prefer.
 
 ### 1. Login
 
-1. Open http://localhost:3000
+1. Open http://localhost:8080
 2. Enter credentials:
    - **Username**: `admin`
    - **Password**: `Admin123!`

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Microservice DevOps Lab</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Items Manager - Microservice DevOps Lab</title>
+    <link rel="stylesheet" href="user-styles.css?v=3">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
@@ -12,8 +12,8 @@
     <div id="loginScreen" class="login-container">
         <div class="login-card">
             <div class="login-header">
-                <i class="fas fa-shield-halved"></i>
-                <h1>Admin Dashboard</h1>
+                <i class="fas fa-box"></i>
+                <h1>Items Manager</h1>
                 <p>Microservice DevOps Lab</p>
             </div>
             <form id="loginForm">
@@ -21,13 +21,13 @@
                     <label for="username">
                         <i class="fas fa-user"></i> Username
                     </label>
-                    <input type="text" id="username" name="username" value="admin" required>
+                    <input type="text" id="username" name="username" value="testuser" required>
                 </div>
                 <div class="form-group">
                     <label for="password">
                         <i class="fas fa-lock"></i> Password
                     </label>
-                    <input type="password" id="password" name="password" value="Admin123!" required>
+                    <input type="password" id="password" name="password" value="User123!" required>
                 </div>
                 <div class="form-group">
                     <label for="apiUrl">
@@ -40,18 +40,27 @@
                     <i class="fas fa-sign-in-alt"></i> Login
                 </button>
             </form>
+            <div class="admin-link">
+                <a href="/admin/">
+                    <i class="fas fa-user-shield"></i> Admin Dashboard
+                </a>
+            </div>
         </div>
     </div>
 
-    <!-- Main Dashboard -->
-    <div id="dashboardScreen" class="dashboard-container" style="display: none;">
+    <!-- Main App -->
+    <div id="appScreen" class="app-container" style="display: none;">
         <!-- Header -->
-        <header class="dashboard-header">
+        <header class="app-header">
             <div class="header-left">
-                <i class="fas fa-shield-halved"></i>
-                <h1>Admin Dashboard</h1>
+                <i class="fas fa-box"></i>
+                <h1>Items Manager</h1>
             </div>
             <div class="header-right">
+                <button id="cartBtn" class="btn btn-info cart-btn" onclick="openCartModal()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cartCount" class="cart-badge">0</span>
+                </button>
                 <span id="userInfo" class="user-info"></span>
                 <button id="logoutBtn" class="btn btn-secondary">
                     <i class="fas fa-sign-out-alt"></i> Logout
@@ -59,261 +68,163 @@
             </div>
         </header>
 
-        <!-- Navigation -->
-        <nav class="dashboard-nav">
-            <button class="nav-btn active" data-view="overview">
-                <i class="fas fa-chart-line"></i> Overview
-            </button>
-            <button class="nav-btn" data-view="users">
-                <i class="fas fa-users"></i> Users
-            </button>
-            <button class="nav-btn" data-view="sessions">
-                <i class="fas fa-desktop"></i> Sessions
-            </button>
-            <button class="nav-btn" data-view="security">
-                <i class="fas fa-shield-alt"></i> Security
-            </button>
-            <button class="nav-btn" data-view="activity">
-                <i class="fas fa-history"></i> Activity
-            </button>
-        </nav>
-
         <!-- Main Content -->
-        <main class="dashboard-main">
-            <!-- Overview View -->
-            <div id="overviewView" class="view active">
-                <h2><i class="fas fa-chart-line"></i> System Overview</h2>
+        <main class="app-main">
+            <!-- Stats Section -->
+            <div class="stats-section">
+                <div class="stat-card">
+                    <div class="stat-icon blue">
+                        <i class="fas fa-box"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Total Items</div>
+                        <div class="stat-value" id="totalItems">0</div>
+                    </div>
+                </div>
                 
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon blue">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Total Users</div>
-                            <div class="stat-value" id="totalUsers">-</div>
-                        </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">
+                        <i class="fas fa-check-circle"></i>
                     </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon green">
-                            <i class="fas fa-user-check"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Active Users</div>
-                            <div class="stat-value" id="activeUsers">-</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon purple">
-                            <i class="fas fa-desktop"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Active Sessions</div>
-                            <div class="stat-value" id="activeSessions">-</div>
-                        </div>
-                    </div>
-                    
-                    <div class="stat-card">
-                        <div class="stat-icon red">
-                            <i class="fas fa-exclamation-triangle"></i>
-                        </div>
-                        <div class="stat-content">
-                            <div class="stat-label">Suspicious Logins</div>
-                            <div class="stat-value" id="suspiciousLogins">-</div>
-                        </div>
+                    <div class="stat-content">
+                        <div class="stat-label">Active Items</div>
+                        <div class="stat-value" id="activeItems">0</div>
                     </div>
                 </div>
-
-                <div class="cards-grid">
-                    <div class="info-card">
-                        <h3><i class="fas fa-chart-pie"></i> Users by Role</h3>
-                        <div id="usersByRole" class="role-stats"></div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-tags"></i>
                     </div>
-                    
-                    <div class="info-card">
-                        <h3><i class="fas fa-clock"></i> Recent Activity</h3>
-                        <div id="recentStats" class="activity-stats"></div>
+                    <div class="stat-content">
+                        <div class="stat-label">Categories</div>
+                        <div class="stat-value" id="categoriesCount">0</div>
                     </div>
                 </div>
+            </div>
 
-                <button class="btn btn-primary refresh-btn" onclick="refreshOverview()">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="itemSearch" placeholder="Search items...">
+                </div>
+                <div class="filters">
+                    <select id="categoryFilter">
+                        <option value="">All Categories</option>
+                    </select>
+                    <label>
+                        <input type="checkbox" id="activeOnlyFilter" checked> Active Only
+                    </label>
+                </div>
+                <button class="btn btn-primary" onclick="showCreateItemModal()">
+                    <i class="fas fa-plus"></i> Add Item
+                </button>
+                <button class="btn btn-success" onclick="loadItems()">
                     <i class="fas fa-sync-alt"></i> Refresh
                 </button>
             </div>
 
-            <!-- Users View -->
-            <div id="usersView" class="view">
-                <h2><i class="fas fa-users"></i> User Management</h2>
-                
-                <div class="toolbar">
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="userSearch" placeholder="Search users...">
-                    </div>
-                    <div class="filters">
-                        <select id="roleFilter">
-                            <option value="">All Roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
-                            <option value="readonly">Readonly</option>
-                        </select>
-                        <label>
-                            <input type="checkbox" id="activeOnlyFilter"> Active Only
-                        </label>
-                    </div>
-                    <button class="btn btn-primary" onclick="loadUsers()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Username</th>
-                                <th>Email</th>
-                                <th>Full Name</th>
-                                <th>Role</th>
-                                <th>Status</th>
-                                <th>Created</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersTableBody">
-                            <tr>
-                                <td colspan="8" class="loading">Loading users...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Sessions View -->
-            <div id="sessionsView" class="view">
-                <h2><i class="fas fa-desktop"></i> Session Management</h2>
-                
-                <div class="toolbar">
-                    <label>
-                        <input type="checkbox" id="activeSessionsOnly" checked> Active Sessions Only
-                    </label>
-                    <button class="btn btn-primary" onclick="loadSessions()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Session ID</th>
-                                <th>User</th>
-                                <th>Device</th>
-                                <th>IP Address</th>
-                                <th>Created</th>
-                                <th>Last Active</th>
-                                <th>Risk Score</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="sessionsTableBody">
-                            <tr>
-                                <td colspan="9" class="loading">Loading sessions...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Security View -->
-            <div id="securityView" class="view">
-                <h2><i class="fas fa-shield-alt"></i> Security Monitoring</h2>
-                
-                <div class="toolbar">
-                    <div class="form-group inline">
-                        <label>Days: </label>
-                        <input type="number" id="securityDays" value="7" min="1" max="30" style="width: 80px;">
-                    </div>
-                    <div class="form-group inline">
-                        <label>Min Risk Score: </label>
-                        <input type="number" id="minRiskScore" value="50" min="0" max="100" style="width: 80px;">
-                    </div>
-                    <button class="btn btn-primary" onclick="loadSuspiciousLogins()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>Session ID</th>
-                                <th>User</th>
-                                <th>Device</th>
-                                <th>IP Address</th>
-                                <th>Timestamp</th>
-                                <th>Risk Score</th>
-                                <th>Risk Factors</th>
-                                <th>Recommendation</th>
-                            </tr>
-                        </thead>
-                        <tbody id="securityTableBody">
-                            <tr>
-                                <td colspan="8" class="loading">Loading suspicious logins...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Activity View -->
-            <div id="activityView" class="view">
-                <h2><i class="fas fa-history"></i> Recent Activity</h2>
-                
-                <div class="toolbar">
-                    <div class="form-group inline">
-                        <label>Hours: </label>
-                        <input type="number" id="activityHours" value="24" min="1" max="168" style="width: 80px;">
-                    </div>
-                    <button class="btn btn-primary" onclick="loadActivity()">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
-                </div>
-
-                <div class="cards-grid">
-                    <div class="info-card">
-                        <h3><i class="fas fa-sign-in-alt"></i> Recent Logins</h3>
-                        <div id="recentLogins" class="activity-list"></div>
-                    </div>
-                    
-                    <div class="info-card">
-                        <h3><i class="fas fa-ban"></i> Recent Revocations</h3>
-                        <div id="recentRevocations" class="activity-list"></div>
-                    </div>
-                </div>
+            <!-- Items Grid -->
+            <div id="itemsGrid" class="items-grid">
+                <div class="loading-message">Loading items...</div>
             </div>
         </main>
     </div>
 
-    <!-- User Details Modal -->
-    <div id="userModal" class="modal">
+    <!-- Create/Edit Item Modal -->
+    <div id="itemModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-user"></i> User Details</h3>
-                <span class="close" onclick="closeUserModal()">&times;</span>
+                <h3 id="modalTitle"><i class="fas fa-box"></i> Add Item</h3>
+                <span class="close" onclick="closeItemModal()">&times;</span>
             </div>
-            <div class="modal-body" id="userModalBody">
+            <form id="itemForm">
+                <div class="modal-body">
+                    <input type="hidden" id="itemId">
+                    
+                    <div class="form-group">
+                        <label for="itemName">Item Name *</label>
+                        <input type="text" id="itemName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemDescription">Description</label>
+                        <textarea id="itemDescription" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemPrice">Price *</label>
+                        <input type="number" id="itemPrice" step="0.01" min="0" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="itemCategory">Category *</label>
+                        <input type="text" id="itemCategory" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="itemActive" checked> Active
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeItemModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Item Details Modal -->
+    <div id="viewItemModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-box"></i> Item Details</h3>
+                <span class="close" onclick="closeViewItemModal()">&times;</span>
+            </div>
+            <div class="modal-body" id="viewItemBody">
                 Loading...
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeUserModal()">Close</button>
+                <button class="btn btn-secondary" onclick="closeViewItemModal()">Close</button>
             </div>
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Shopping Cart Modal -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Shopping Cart</h3>
+                <span class="close" onclick="closeCartModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div id="cartItems" class="cart-items-list">
+                    <!-- Cart items will be inserted here -->
+                </div>
+                <div class="cart-summary">
+                    <div class="cart-total">
+                        <span>Total:</span>
+                        <span id="cartTotal" class="cart-total-amount">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="clearCart()">
+                    <i class="fas fa-trash"></i> Clear Cart
+                </button>
+                <button class="btn btn-secondary" onclick="closeCartModal()">Close</button>
+                <button class="btn btn-success" onclick="placeOrder()">
+                    <i class="fas fa-check"></i> Place Order
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="user-app.js?v=3"></script>
 </body>
 </html>
